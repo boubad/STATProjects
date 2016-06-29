@@ -63,7 +63,7 @@ namespace info {
 					size_t i = px.first;
 					size_t j = px.second;
 					v.pop();
-					task_type ts = std::async(std::launch::std::launch::async,
+					task_type ts = std::async(std::launch::async,
 						[this, i, j, bestCrit]()->result_type {
 						MatElemType oMat(*this);
 						size_t t = oMat.m_indexes[i];
@@ -96,7 +96,7 @@ namespace info {
 			return (this->get_result());
 		}// arrange
 		task_type arrangeAsync(void) {
-			return std::async(std::launch::std::launch::async,[this]()->result_type {
+			return std::async(std::launch::async,[this]()->result_type {
 				return (this->arrange());
 			});
 		}// arrangeAsync

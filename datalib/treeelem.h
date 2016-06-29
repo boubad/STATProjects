@@ -14,7 +14,7 @@
 namespace info {
 ////////////////////////////////////
 template<typename INDEXTYPE,typename DATATYPE, typename DISTANCETYPE,typename STRINGTYPE>
-class TreeItem  : public Indiv<U,DATATYPE> {
+class TreeItem  : public Indiv<INDEXTYPE,DATATYPE,STRINGTYPE> {
 public:
 	using index_type  = INDEXTYPE;
 	using data_type = DATATYPE;
@@ -112,7 +112,7 @@ public:
   using ints_vector = std::vector<index_type>;
   using treeitems_vector = std::vector<PTreeItemType>;
   using DistanceMapType = DistanceMap<index_type, distance_type>;
-  using MatDataType = MatData<index_type, data_type, distance_type>;
+  using MatDataType = MatData<index_type, data_type, distance_type,string_type>;
   //
   using MatTreeType = MatTree<index_type,data_type,distance_type,string_type>;
   using pair_type = std::pair<size_t, size_t>;

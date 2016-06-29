@@ -200,7 +200,7 @@ namespace info {
 		using doubles_vector = std::vector<data_type>;
 		using DistanceMapType = DistanceMap<index_type, distance_type>;
 		using PDistanceMapType = DistanceMapType *;
-		using MatDataType = MatData<index_type, data_type, distance_type>;
+		using MatDataType = MatData<index_type, data_type, distance_type,string_type>;
 		using MatDataPtr = std::shared_ptr<MatDataType>;
 	private:
 		size_t m_nrows;
@@ -370,6 +370,15 @@ namespace info {
 			}// pRet
 			return (oRet);
 		}		// create
+		template<typename X>
+		static std::future<MatDataPtr> createAsync(size_t nRows, size_t nCols, const X &pxdata,
+		  const strings_vector *pRowNames = nullptr,
+		  const strings_vector *pColNames = nullptr) {
+		  return std::async(std::launch::async,
+				    [nRows,nCols,pxdata,pRowNames,pColNames]()->MatDataPtr{
+				      return MatDataType::create(nRows,nCols,pxdata,pRowNames,pColNames);
+				    });	
+		}		// createAsync
 				/////////////////////////////////////
 	protected:
 		void getRowDist(void) {
