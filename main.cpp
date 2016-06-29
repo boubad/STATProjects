@@ -1,6 +1,11 @@
-#include <iostream>
+#include <unittest++/UnitTest++.h>
 
-int main(int argc, char **argv) {
-    std::cout << "Hello, world!" << std::endl;
-    return 0;
+TEST(Sanity) 
+{
+   CHECK_EQUAL(1, 1);
+}
+
+int main(int, const char *[])
+{
+   return UnitTest::RunAllTests();
 }
