@@ -105,3 +105,32 @@ TEST_FIXTURE(InfoDataFixture,TestMatDataAsync)
    PDistanceMapType pMapCols = pMat->get_cols_distances_map();
    CHECK(pMapCols != nullptr);
 }//TestMatDataAsync
+TEST_FIXTURE(InfoDataFixture,TestMatElem)
+{
+   using index_type = INDEXTYPE;
+   using data_type = FLOATTYPE;
+   using distance_type = DISTANCETYPE;
+   using string_type = STRINGTYPE;
+   using criteria_type = CRITERIATYPE;
+   //
+   using sizets_vector = std::vector<size_t>;
+   using index_ptr_type = std::shared_ptr<sizets_vector>;
+   using result_type = std::pair<criteria_type, index_ptr_type>;
+   //
+		//
+   using strings_vector = std::vector<string_type>;
+   using DistanceMapType = DistanceMap<index_type, distance_type>;
+   using PDistanceMapType = DistanceMapType *;
+   using MatDataType = MatData<index_type, data_type, distance_type,string_type>;
+   using MatDataPtr = std::shared_ptr<MatDataType>;
+   using MatElemType = MatElem<index_type,distance_type, criteria_type>;
+   using task_type = std::future<result_type>;
+   //
+   MatDataPtr oPtr = MatDataType::create(nRows,nCols,gdata,&rowNames,&colNames);
+   MatDataType *pMat = oPtr.get();
+   CHECK(pMat != nullptr);
+   PDistanceMapType pMapRows = pMat->get_rows_distances_map();
+   CHECK(pMapRows != nullptr);
+   MatElemType oMat(pMapRows);
+   auto r = oMat.arrange();
+}//TestMatData

@@ -9,18 +9,19 @@
 ////////////////////////
 namespace info {
 	////////////////////////////////
-	template <typename DISTANCETYPE, typename CRITERIATYPE>
+	template <typename INDEXTYPE,typename DISTANCETYPE, typename CRITERIATYPE>
 	class MatElem {
 	public:
+		using index_type = INDEXTYPE;
 		using criteria_type = CRITERIATYPE;
-		using sizets_vector = std::vector<size_t>;
-		using DistanceMapType = DistanceMap<size_t, DISTANCETYPE>;
+		using sizets_vector = std::vector<index_type>;
+		using DistanceMapType = DistanceMap<index_type, DISTANCETYPE>;
 		using pair_type = std::pair<size_t, size_t>;
 		using pairs_type_vector = std::queue<pair_type>;
 		using index_ptr_type = std::shared_ptr<sizets_vector>;
 		using result_type = std::pair<criteria_type, index_ptr_type>;
 		using task_type = std::future<result_type>;
-		using MatElemType = MatElem<DISTANCETYPE, CRITERIATYPE>;
+		using MatElemType = MatElem<INDEXTYPE,DISTANCETYPE, CRITERIATYPE>;
 	public:
 		MatElem(const DistanceMapType *pMap) :m_pdist(pMap), m_cancel(false), m_crit(0) {
 			assert(this->m_pdist != nullptr);
@@ -57,32 +58,29 @@ namespace info {
 				v.pop();
 				size_t iFirst = p.first;
 				size_t jFirst = p.second;
-				std::vector<task_type> mtasks;
+				std::vector<result_type> mtasks;
 				while (!v.empty()) {
 					pair_type px = v.front();
 					size_t i = px.first;
 					size_t j = px.second;
 					v.pop();
-					task_type ts = std::async(std::launch::async,
-						[this, i, j, bestCrit]()->result_type {
-						MatElemType oMat(*this);
-						size_t t = oMat.m_indexes[i];
-						oMat.m_indexes[i] = oMat.m_indexes[j];
-						oMat.m_indexes[j] = t;
-						oMat.m_crit = bestCrit;
-						return (oMat.arrange());
-					});
-					mtasks.push_back(ts);
+					MatElemType oMat(*this);
+					size_t t = oMat.m_indexes[i];
+					oMat.m_indexes[i] = oMat.m_indexes[j];
+					oMat.m_indexes[j] = t;
+					oMat.m_crit = bestCrit;
+					result_type pp = oMat.arrange();
+					mtasks.push_back(pp);
 				}// not empty
 				sizets_vector &xind = this->m_indexes;
 				size_t t = xind[iFirst];
 				xind[iFirst] = xind[jFirst];
 				xind[jFirst] = t;
 				this->m_crit = bestCrit;
-				for (auto it = mtasks.begin(); it != mtasks.end(); ++it) {
-					task_type ts = *it;
-					result_type pp = ts.get();
-					const criteria_type crit = pp.first;
+				const size_t nx = mtasks.size();
+				for (size_t i = 0; i < nx; ++i){
+				  result_type pp = mtasks[i];
+				  const criteria_type crit = pp.first;
 					if (crit < this->m_crit) {
 						index_ptr_type oind = pp.second;
 						const sizets_vector *pv = oind.get();
@@ -91,7 +89,7 @@ namespace info {
 							this->m_indexes = *pv;
 						}// pv
 					}
-				}// it
+				}// i
 			}// not done
 			return (this->get_result());
 		}// arrange
