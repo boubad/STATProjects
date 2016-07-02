@@ -134,3 +134,34 @@ TEST_FIXTURE(InfoDataFixture,TestMatElem)
    MatElemType oMat(pMapRows);
    auto r = oMat.arrange();
 }//TestMatData
+TEST_FIXTURE(InfoDataFixture,TestTreeElem)
+{
+   using index_type = INDEXTYPE;
+   using data_type = FLOATTYPE;
+   using distance_type = DISTANCETYPE;
+   using string_type = STRINGTYPE;
+   using criteria_type = CRITERIATYPE;
+   //
+   using sizets_vector = std::vector<size_t>;
+   using index_ptr_type = std::shared_ptr<sizets_vector>;
+   using result_type = std::pair<criteria_type, index_ptr_type>;
+   //
+		//
+   using strings_vector = std::vector<string_type>;
+   using DistanceMapType = DistanceMap<index_type, distance_type>;
+   using PDistanceMapType = DistanceMapType *;
+   using MatDataType = MatData<index_type, data_type, 
+distance_type,string_type>;
+   using MatDataPtr = std::shared_ptr<MatDataType>;
+   using MatElemType = MatElem<index_type,distance_type, criteria_type>;
+   using task_type = std::future<result_type>;
+   using MatTreeType = MatTree<index_type,data_type,distance_type,string_type>;
+   //
+   MatDataPtr oPtr = MatDataType::create(nRows,nCols,gdata,&rowNames,&colNames);
+   const MatDataType *pMat = oPtr.get();
+   CHECK(pMat != nullptr);
+   size_t nClasses = 1;
+   MatTreeType oTree(pMat);
+   bool bRet = oTree.aggreg(nClasses);
+   CHECK(bRet);
+}//TestMatData

@@ -57,7 +57,7 @@ namespace info {
       const size_t n = this->size();
       assert(n == other.size());
       const data_type *p1 = this->center();
-      const data_type *p2 = other.m_center();
+      const data_type *p2 = other.center();
       res = 0;
       for (size_t i = 0; i < n; ++i){
 	F x = (F)(p1[i] - p2[i]);
