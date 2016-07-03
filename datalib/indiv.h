@@ -2,32 +2,45 @@
 #ifndef __INDIV_H__
 #define __INDIV_H__
 ////////////////////////////////////
+#include "cancellable_object.h"
+////////////////////////////
 #include <cassert>
 #include <memory>
 /////////////////////////////////////
 namespace info {
   ///////////////////////////////
   template <typename INDEXTYPE, typename DATATYPE,typename STRINGTYPE>
-  class Indiv {
+  class Indiv : public CancellableObject {
   public:
     using string_type = STRINGTYPE;
     using index_type = INDEXTYPE;
     using data_type = DATATYPE;
+    using cancellableflag_type = CancellableObject::cancellableflag_type;
     //
-    using IndivType = Indiv<index_type,data_type,string_type>;
+    using indiv_type = Indiv<index_type,data_type,string_type>;
   protected:
      index_type m_index;
      size_t m_ncols;
       string_type m_sigle;
-     std::unique_ptr<data_type> m_center;
-  protected:
-     Indiv():m_index(0),m_ncols(0){}
-  private:
-      Indiv(const IndivType &) = delete;
-      IndivType & operator=(const IndivType &) = delete;
+     std::shared_ptr<data_type> m_center;
   public:
+    Indiv(cancellableflag_type *pf = nullptr):CancellableObject(pf),m_index(0),m_ncols(0){}
+    Indiv(const indiv_type &other):CancellableObject(other),m_index(other.m_index),m_ncols(other.m_ncols),
+    m_sigle(other.m_sigle),m_center(other.m_center){}
+    index_type & operator=(const index_type &other){
+      if (this != &other){
+	CancellableObject::operator=(other);
+	this->m_index = other.m_index;
+	this->m_ncols = other.m_ncols;
+	this->m_sigle = other.m_sigle;
+	this->m_center = other.m_center;
+      }
+      return (*this);
+    }
     template <typename X>
-    Indiv(index_type aIndex,size_t nCols, const X &pxdata,const string_type &sSigle = string_type()):
+    Indiv(index_type aIndex,size_t nCols, const X &pxdata,
+	  const string_type &sSigle = string_type(),
+	  cancellableflag_type *pf = nullptr):CancellableObject(pf),
     m_index(aIndex),m_ncols(nCols),m_sigle(sSigle),m_center(new data_type[nCols]){
       assert(nCols > 0);
       data_type *p = this->m_center.get();
@@ -38,6 +51,9 @@ namespace info {
     }// Indiv
     virtual ~Indiv(){
     }
+    bool is_valid(void) const {
+      return ((this->m_ncols > 0) && (this->m_center.get() != nullptr));
+    }// is_valid
     index_type id(void) const {
       return (this->m_index);
     }
@@ -52,17 +68,21 @@ namespace info {
       assert(this->m_center.get() != nullptr);
       return (this->m_center.get());
     }
-    template <typename F>
-    void distance(const IndivType &other, F &res) const {
+    template <typename XU, typename XA, typename F>
+    void distance(const Indiv<XU,XA,string_type> &other, F &res)  {
+      if (this->is_cancellation_requested()){
+	return;
+      }
       const size_t n = this->size();
       assert(n == other.size());
       const data_type *p1 = this->center();
-      const data_type *p2 = other.center();
-      res = 0;
+      const XA *p2 = other.center();
+      double d = 0;
       for (size_t i = 0; i < n; ++i){
-	F x = (F)(p1[i] - p2[i]);
-	res = (F)(res + x * x);
+	double x = (double)p1[i] - (double)p2[i];
+	d  += x * x;
       }// i
+      res = (F)d;
     }// distance
   };// class Indiv<INDEXTYPE,DATATYPE,STRINGTYPE>
   //////////////////////////////////

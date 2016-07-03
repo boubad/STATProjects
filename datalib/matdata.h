@@ -47,6 +47,9 @@ namespace info {
 		virtual ~DistanceMap() {
 		}
 	public:
+		bool is_valid(void) const {
+		  return ((this->m_map.size() > 0) && (this->m_set.size() > 0));
+		}// i_valid
 		template <typename X, typename F>
 		void compute_criteria(const std::vector<X> &oInds, F &res) const {
 			double ss = 0;
@@ -244,7 +247,7 @@ namespace info {
 		size_t cols(void) const {
 			return (this->m_ncols);
 		}	// cols
-		data_type get_value(const size_t irow, const size_t icol) const {
+		data_type get_data(const size_t irow, const size_t icol) const {
 			assert(irow < this->m_nrows);
 			const size_t nCols = this->m_ncols;
 			assert(icol < nCols);
@@ -255,12 +258,12 @@ namespace info {
 		data_type operator()(const size_t irow, const size_t icol) const {
 			return (this->get_value(irow, icol));
 		}	// operator()
-		string_type row_name(const size_t irow) const {
+		string_type get_row_name(const size_t irow) const {
 			const strings_vector &v = this->m_rownames;
 			assert((irow < this->m_nrows) && (irow < v.size()));
 			return (v[irow]);
 		}	// row_name
-		string_type col_name(const size_t icol) const {
+		string_type get_col_name(const size_t icol) const {
 			const strings_vector &v = this->m_colnames;
 			assert((icol < this->m_ncols) && (icol < v.size()));
 			return (v[icol]);
