@@ -26,6 +26,8 @@ using MatDataPtr = std::shared_ptr<MatDataType>;
 using matelemresult_type = MatElemResult<index_type,criteria_type>;
 using matelemresult_type_ptr = std::shared_ptr<matelemresult_type>;
 using matelem_type = MatElem<index_type,distance_type,criteria_type>;
+using matord_type = MatOrd<index_type,distance_type,criteria_type>;
+using matordresult_type = std::pair<matelemresult_type_ptr,matelemresult_type_ptr>;
 ///////////////////////////////
 TEST_FIXTURE(InfoDataFixture,TestIndivs)
 {
@@ -85,3 +87,19 @@ TEST_FIXTURE(InfoDataFixture,TestMatElem)
    p->write_to(std::cout);
    std::cout << std::endl;
 }//TestMatElem
+TEST_FIXTURE(InfoDataFixture,TestMatOrd)
+{
+   MatDataPtr oPtr = MatDataType::create(nRows,nCols,gdata,&rowNames,&colNames);
+   MatDataType *pMat = oPtr.get();
+   CHECK(pMat != nullptr);
+   CHECK(pMat->is_valid());
+   matordresult_type r = matord_type::st_arrange_all_hierar(pMat);
+   matelemresult_type *p = r.first.get();
+   CHECK(p != nullptr);
+   std::cout << std::endl << *p;
+    matelemresult_type *pp = r.second.get();
+   CHECK(pp != nullptr);
+   std::cout << std::endl << *pp;
+   std::cout << std::endl;
+}//TestMatOrd
+
