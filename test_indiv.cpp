@@ -5,6 +5,7 @@
 #include <matdata.h>
 #include <matelem.h>
 #include <treeelem.h>
+#include <indexed_matdata.h>
 ////////////////////////////////
 #include "infodatafixture.h"
 #include "global_defs.h"
@@ -28,6 +29,7 @@ using matelemresult_type_ptr = std::shared_ptr<matelemresult_type>;
 using matelem_type = MatElem<index_type,distance_type,criteria_type>;
 using matord_type = MatOrd<index_type,distance_type,criteria_type>;
 using matordresult_type = std::pair<matelemresult_type_ptr,matelemresult_type_ptr>;
+using indexedmatdata_type = IndexedMatData<index_type, data_type, distance_type,string_type>;
 ///////////////////////////////
 TEST_FIXTURE(InfoDataFixture,TestIndivs)
 {
@@ -102,4 +104,21 @@ TEST_FIXTURE(InfoDataFixture,TestMatOrd)
    std::cout << std::endl << *pp;
    std::cout << std::endl;
 }//TestMatOrd
+TEST_FIXTURE(InfoDataFixture,TestIndexedMatData)
+{
+   MatDataPtr oPtr = MatDataType::create(nRows,nCols,gdata,&rowNames,&colNames);
+   MatDataType *pMat = oPtr.get();
+   CHECK(pMat != nullptr);
+   CHECK(pMat->is_valid());
+   //
+   indexedmatdata_type oIndData(pMat);
+   CHECK(oIndData.is_valid());
+   //
+   matordresult_type r = matord_type::st_arrange_all_hierar(pMat);
+   //
+   oIndData.row_indexes(r.first);
+   CHECK(oIndData.is_valid());
+   oIndData.col_indexes(r.second);
+   CHECK(oIndData.is_valid());
+}//TestIndexedMatData
 
