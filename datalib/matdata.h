@@ -238,7 +238,7 @@ namespace info {
 		virtual ~MatData() {
 		}
 	public:
-		bool is_valid(void) const {
+		 bool is_valid(void) const {
 			return ((this->m_nrows > 0) && (this->m_ncols > 0));
 		}	// is_valid
 		size_t rows(void) const {
@@ -247,7 +247,7 @@ namespace info {
 		size_t cols(void) const {
 			return (this->m_ncols);
 		}	// cols
-		data_type get_data(const size_t irow, const size_t icol) const {
+		 data_type get_data(const size_t irow, const size_t icol) const {
 			assert(irow < this->m_nrows);
 			const size_t nCols = this->m_ncols;
 			assert(icol < nCols);
