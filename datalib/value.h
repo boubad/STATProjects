@@ -2,9 +2,11 @@
 #ifndef __VALUE_H__
 #define __VALUE_H__
 ///////////////////////////
+#include <cassert>
 #include <memory>
 #include <string>
 #include <iostream>
+#include <sstream>
 #include <vector>
 #include <map>
 #include <set>
@@ -27,9 +29,9 @@ double_type, string_type, array_type, object_type };
 	class Object;
 	class Array;
 	////////////////////////////
-	typedef std::shared_ptr<Value> PValue;
-	typedef std::shared_ptr<Object> PObject;
-	typedef std::shared_ptr<Array> PArray;
+	using PValue = std::shared_ptr<Value>;
+	using PObject = std::shared_ptr<Object>;
+	using PArray = std::shared_ptr<Array>;
 	///////////////////////////////
 	class Value
 	{

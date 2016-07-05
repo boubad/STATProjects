@@ -7,9 +7,9 @@
 ////////////////////////////
 namespace info
 {
-	typedef utility::string_t string_t;
-	typedef web::json::value value;
-	typedef utility::ostream_t ostream_t;
+	using string_t = utility::string_t;
+	using value = web::json::value;
+	using ostream_t = utility::ostream_t;
 	/////////////////////////////
 	class ReadDocOptions
 	{

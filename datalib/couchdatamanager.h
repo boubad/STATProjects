@@ -5,9 +5,11 @@
 #include <string>
 #include "value.h"
 ////////////////////////////////
+#include "idatamanager.h"
+////////////////////////////////
 namespace info {
 	//////////////////////////////
-	class CouchDBDataManager 
+	class CouchDBDataManager : public IDataManager
 	{
 	public:
 		CouchDBDataManager();
@@ -15,27 +17,22 @@ namespace info {
 &database);
 		CouchDBDataManager(const CouchDBDataManager &other);
 		CouchDBDataManager & operator=(const CouchDBDataManager &other);
-		virtual ~CouchDBDataManager();
+		 ~CouchDBDataManager();
 	public:
 		virtual std::string base_url(void);
 		virtual void base_url(const std::string &s);
 		virtual std::string database_name(void);
 		virtual void database_name(const std::string &s);
-		virtual Value read_doc(const std::string &id, bool bAttachments 
-= false, bool bMeta = false);
+		virtual Value read_doc(const std::string &id, bool bAttachments = false, bool bMeta = false);
 		virtual Value insert_doc(const Value &doc);
 		virtual Value update_doc(const Value &doc);
 		virtual Value remove_doc(const Value &doc);
-		virtual Value read_docs_range(const std::string &startkey, const 
-std::string &endkey,
+		virtual Value read_docs_range(const std::string &startkey, const std::string &endkey,
 			int skip = 0, int limit = 0, bool bDoc = false);
-		virtual std::vector<std::string> read_docs_ids_range(const 
-std::string &startkey, const std::string &endkey,
+		virtual std::vector<std::string> read_docs_ids_range(const std::string &startkey, const std::string &endkey,
 			int skip = 0, int limit = 0);
-		virtual Value read_docs_array(const std::vector<std::string> 
-&ids);
-		virtual Value maintains_docs(const std::vector<Value> &docs, 
-bool bDelete = false);
+		virtual Value read_docs_array(const std::vector<std::string> &ids);
+		virtual Value maintains_docs(const std::vector<Value> &docs, bool bDelete = false);
 		//
 		virtual Value server_info(void);
 		virtual std::vector<std::string> get_uuids(int count = 1);

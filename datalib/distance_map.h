@@ -165,7 +165,7 @@ namespace info {
 			return (true);
 		} // recode
 		template<typename XU, typename X>
-		std::future<bool> recodeAsync(DistanceMap<XU, X> &oDest, X dMax = 1000, X dMin = 0) const {
+		std::future<bool> recodeAsync(DistanceMap<XU, X> &oDest, X dMax = 10000, X dMin = 0) const {
 			return std::async([this, dMax, dMin, &oDest]()->bool {
 				return (this->recode(oDest, dMax, dMin));
 			});
