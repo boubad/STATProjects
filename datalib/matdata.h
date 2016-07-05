@@ -1,197 +1,19 @@
 /*
- * matdata.h
- *
- *  Created on: 27 juin 2016
- *      Author: boubad
- */
+* matdata.h
+*
+*  Created on: 27 juin 2016
+*      Author: boubad
+*/
 
 #pragma once
 #ifndef __MATDATA_H__
 #define __MATDATA_H__
- ///////////////////////////////////////
-#include "gendefs.h"
- //////////////////////
-#include <cassert>
-#include <memory>
-#include <vector>
-#include <map>
-#include <set>
-#include <future>
-//////////////////////////////////////////////////
+///////////////////////////////////////
+#include "distance_map.h"
+//////////////////////
 namespace info {
 	////////////////////////////////////////
-	template<typename U, typename T>
-	class DistanceMap {
-	public:
-		using ints_vector = std::vector<U>;
-		using first_map_type = std::map<U, T>;
-		using map_type = std::map<U, first_map_type>;
-		using set_type = std::set<U>;
-		using DistanceMapType = DistanceMap<U, T>;
-	private:
-		map_type m_map;
-		set_type m_set;
-	public:
-		DistanceMap() {
-		}
-		DistanceMap(const DistanceMapType &other) :
-			m_map(other.m_map), m_set(other.m_set) {
-		}
-		DistanceMapType & operator=(const DistanceMapType &other) {
-			if (this != &other) {
-				this->m_map = other.m_map;
-				this->m_set = other.m_set;
-			}
-			return (*this);
-		}
-		virtual ~DistanceMap() {
-		}
-	public:
-		bool is_valid(void) const {
-		  return ((this->m_map.size() > 0) && (this->m_set.size() > 0));
-		}// i_valid
-		template <typename X, typename F>
-		void compute_criteria(const std::vector<X> &oInds, F &res) const {
-			double ss = 0;
-			size_t nc = 0;
-			const size_t n = oInds.size();
-			for (size_t i = 1; i < n; ++i) {
-				U ii = (U)oInds[i - 1];
-				U jj = (U)oInds[i];
-				T val;
-				if (this->get(ii, jj, val)) {
-					ss += (double)val;
-					++nc;
-				}
-			}// i
-			if (nc > 1) {
-				ss /= nc;
-			}
-			res = (F)ss;
-		}// compute_criteria
-		template <typename X>
-		void get_indexes(std::vector<X> &v) const {
-			v.clear();
-			const set_type &oSet = this->m_set;
-			for (auto it = oSet.begin(); it != oSet.end(); ++it) {
-				X val = (X)(*it);
-				v.push_back(val);
-			} // it
-		} // get_indexes
-		void clear(void) {
-			this->m_map.clear();
-			this->m_set.clear();
-		} // clear
-		template <typename X>
-		bool has_entry(const X ii, const X jj) const {
-			const set_type &oSet = this->m_set;
-			U i = (U)ii;
-			U j = (U)jj;
-			return ((oSet.find(i) != oSet.end()) && (oSet.find(j) != oSet.end()));
-		} // has_entry
-		template <typename X>
-		bool get(const X ii, const X jj, T &val) const {
-			U i = (U)ii, j = (U)jj;
-			if (i > j) {
-				U t = i;
-				i = j;
-				j = t;
-			}
-			const map_type &oMap = this->m_map;
-			auto it = oMap.find(i);
-			if (it == oMap.end()) {
-				return (false);
-			}
-			const first_map_type & m = (*it).second;
-			auto jt = m.find(j);
-			if (jt != m.end()) {
-				val = (*jt).second;
-				return (true);
-			}
-			return (false);
-		} // get
-		template <typename X>
-		bool add(const X ii, const X jj, T val) {
-			if (ii == jj) {
-				return (false);
-			}
-			U i = (U)ii, j = (U)jj;
-			if (i > j) {
-				U t = i;
-				i = j;
-				j = t;
-			}
-			map_type &oMap = this->m_map;
-			set_type &oSet = this->m_set;
-			auto it = oMap.find(i);
-			if (it == oMap.end()) {
-				first_map_type m;
-				m[j] = val;
-				oMap[i] = m;
-				oSet.insert(i);
-				oSet.insert(j);
-			}
-			else {
-				first_map_type &m = (*it).second;
-				m[j] = val;
-				oSet.insert(j);
-			}
-			return (true);
-		} // add
-		template<typename XU, typename X>
-		bool recode(DistanceMap<XU, X> &oDest, X dMax = 1000, X dMin = 0) const {
-			if (dMax <= dMin) {
-				return (false);
-			}
-			T vMin = 0, vMax = 0;
-			bool bFirst = true;
-			const map_type &oMap = this->m_map;
-			for (auto it = oMap.begin(); it != oMap.end(); ++it) {
-				const first_map_type &m = (*it).second;
-				for (auto jt = m.begin(); jt != m.end(); ++jt) {
-					T v = (*jt).second;
-					if (bFirst) {
-						vMin = v;
-						vMax = v;
-						bFirst = false;
-					}
-					else if (v < vMin) {
-						vMin = v;
-					}
-					else if (v > vMax) {
-						vMax = v;
-					}
-				} // jt
-			} // it
-			if (vMax <= vMin) {
-				return (false);
-			}
-			double delta = (double)(dMax - dMin) / (double)(vMax - vMin);
-			oDest.clear();
-			for (auto it = oMap.begin(); it != oMap.end(); ++it) {
-				U ii = (*it).first;
-				const first_map_type &m = (*it).second;
-				for (auto jt = m.begin(); jt != m.end(); ++jt) {
-					U jj = (*jt).first;
-					T v = (*jt).second;
-					double x = (((double)v - vMin) * delta) + (double)dMin;
-					X val = (X)x;
-					oDest.add(ii, jj, val);
-				} // jt
-			} // it
-			return (true);
-		} // recode
-		template<typename XU, typename X>
-		std::future<bool> recodeAsync(DistanceMap<XU, X> &oDest, X dMax = 1000, X dMin = 0) const {
-			return std::async(std::launch::async,[this, dMax, dMin, &oDest]()->bool {
-				return (this->recode(oDest, dMax, dMin));
-			});
-		}// recodeAsync
-	};
-	// class DistanceMap<T>
-	/////////////////////////////////////
-	template <typename INDEXTYPE, typename FLOATTYPE, 
-	typename DISTANCETYPE, typename STRINGTYPE>
+	template <typename INDEXTYPE, typename FLOATTYPE, typename DISTANCETYPE, typename STRINGTYPE>
 	class MatData {
 	public:
 		using index_type = INDEXTYPE;
@@ -200,30 +22,28 @@ namespace info {
 		using string_type = STRINGTYPE;
 		//
 		using strings_vector = std::vector<string_type>;
-		using doubles_vector = std::vector<data_type>;
-		using DistanceMapType = DistanceMap<index_type, distance_type>;
-		using PDistanceMapType = DistanceMapType *;
-		using MatDataType = MatData<index_type, data_type, distance_type,string_type>;
-		using MatDataPtr = std::shared_ptr<MatDataType>;
+		using data_vector = std::vector<data_type>;
+		using distancemap_type = DistanceMap<index_type, distance_type>;
+		using matdata_type = MatData<index_type, data_type, distance_type, string_type>;
+		using matdata_type_ptr = std::shared_ptr<matdata_type>;
 	private:
 		size_t m_nrows;
 		size_t m_ncols;
 		std::shared_ptr<data_type> m_data;
 		strings_vector m_rownames;
 		strings_vector m_colnames;
-		std::shared_ptr<DistanceMapType> m_rowdist;
-		std::shared_ptr<DistanceMapType> m_coldist;
+		std::shared_ptr<distancemap_type> m_rowdist;
+		std::shared_ptr<distancemap_type> m_coldist;
 	public:
-		MatData() :
-			m_nrows(0), m_ncols(0) {
+		MatData() : m_nrows(0), m_ncols(0) {
 		}
-		MatData(const MatDataType &other) :
+		MatData(const matdata_type &other) :
 			m_nrows(other.m_nrows), m_ncols(other.m_ncols), m_data(
 				other.m_data), m_rownames(other.m_rownames), m_colnames(
 					other.m_colnames), m_rowdist(other.m_rowdist), m_coldist(
 						other.m_coldist) {
 		}
-		MatDataType & operator=(const MatDataType &other) {
+		matdata_type & operator=(const matdata_type &other) {
 			if (this != &other) {
 				this->m_nrows = other.m_nrows;
 				this->m_ncols = other.m_ncols;
@@ -238,8 +58,8 @@ namespace info {
 		virtual ~MatData() {
 		}
 	public:
-		 bool is_valid(void) const {
-			return ((this->m_nrows > 0) && (this->m_ncols > 0));
+		bool is_valid(void) const {
+			return ((this->m_nrows > 0) && (this->m_ncols > 0) && (this->m_data.get() != nullptr));
 		}	// is_valid
 		size_t rows(void) const {
 			return (this->m_nrows);
@@ -247,7 +67,7 @@ namespace info {
 		size_t cols(void) const {
 			return (this->m_ncols);
 		}	// cols
-		 data_type get_data(const size_t irow, const size_t icol) const {
+		data_type get_data(const size_t irow, const size_t icol) const {
 			assert(irow < this->m_nrows);
 			const size_t nCols = this->m_ncols;
 			assert(icol < nCols);
@@ -297,11 +117,11 @@ namespace info {
 	public:
 		template<typename X>
 		bool init(size_t nRows, size_t nCols, const X &pxdata,
-		  const strings_vector *pRowNames = nullptr,
-		  const strings_vector *pColNames = nullptr) {
+			const strings_vector *pRowNames = nullptr,
+			const strings_vector *pColNames = nullptr) {
 			bool bRet = false;
-			if ((nCols < 1)|| (nRows < 1)){
-			  return (bRet);
+			if ((nCols < 1) || (nRows < 1)) {
+				return (bRet);
 			}
 			try {
 				const size_t nn = (size_t)(nRows * nCols);
@@ -338,62 +158,62 @@ namespace info {
 				this->m_data = ff;
 				this->m_rowdist.reset();
 				this->m_coldist.reset();
-				this->set_names(pRowNames,pColNames);
+				this->set_names(pRowNames, pColNames);
 				bRet = true;
 			}
 			catch (...) {}
 			return (bRet);
 		}	// init
-		PDistanceMapType get_rows_distances_map(void) {
-			PDistanceMapType pRet = this->m_rowdist.get();
+		distancemap_type *get_rows_distances_map(void) {
+			distancemap_type  *pRet = this->m_rowdist.get();
 			if (pRet == nullptr) {
 				this->getRowDist();
 				pRet = this->m_rowdist.get();
 			}
 			return (pRet);
-		}							// get_rows_distances_map
-		PDistanceMapType get_cols_distances_map(void) {
-			PDistanceMapType pRet = this->m_coldist.get();
+		}// get_rows_distances_map
+		distancemap_type  *get_cols_distances_map(void) {
+			distancemap_type  *pRet = this->m_coldist.get();
 			if (pRet == nullptr) {
 				this->getColDist();
 				pRet = this->m_coldist.get();
 			}
 			return (pRet);
-		}							 // get_cols_distances_map
+		}// get_cols_distances_map
 		template<typename X>
-		static MatDataPtr create(size_t nRows, size_t nCols, const X &pxdata,
-		  const strings_vector *pRowNames = nullptr,
-		  const strings_vector *pColNames = nullptr) {
-			MatDataPtr oRet = std::make_shared<MatDataType>();
-			MatDataType *pRet = oRet.get();
+		static matdata_type_ptr create(size_t nRows, size_t nCols, const X &pxdata,
+			const strings_vector *pRowNames = nullptr,
+			const strings_vector *pColNames = nullptr) {
+			matdata_type_ptr oRet = std::make_shared<matdata_type>();
+			matdata_type *pRet = oRet.get();
 			if (pRet != nullptr) {
-				pRet->init(nRows,nCols,pxdata,pRowNames,pColNames);
-				pRet->getRowDist();
-				pRet->getColDist();
+				if (pRet->init(nRows, nCols, pxdata, pRowNames, pColNames)) {
+					pRet->getRowDist();
+					pRet->getColDist();
+				}
 			}// pRet
 			return (oRet);
 		}		// create
 		template<typename X>
-		static std::future<MatDataPtr> createAsync(size_t nRows, size_t nCols, const X &pxdata,
-		  const strings_vector *pRowNames = nullptr,
-		  const strings_vector *pColNames = nullptr) {
-		  return std::async(std::launch::async,
-				    [nRows,nCols,pxdata,pRowNames,pColNames]()->MatDataPtr{
-				      return MatDataType::create(nRows,nCols,pxdata,pRowNames,pColNames);
-				    });	
+		static std::future<matdata_type_ptr> createAsync(size_t nRows, size_t nCols, const X &pxdata,
+			const strings_vector *pRowNames = nullptr,
+			const strings_vector *pColNames = nullptr) {
+			return std::async([nRows, nCols, pxdata, pRowNames, pColNames]()->matdata_type_ptr {
+				return MatDataType::create(nRows, nCols, pxdata, pRowNames, pColNames);
+			});
 		}		// createAsync
 				/////////////////////////////////////
 	protected:
 		void getRowDist(void) {
 			const size_t nRows = this->m_nrows;
 			const size_t nCols = this->m_ncols;
-			const FLOATTYPE *pf = this->m_data.get();
+			const data_type *pf = this->m_data.get();
 			if ((nRows > 0) && (nCols > 0) && (pf != nullptr)) {
-				DistanceMap<size_t, double> oDist;
+				DistanceMap<size_t, float> oDist;
 				for (size_t i = 0; i < nRows; ++i) {
-					const FLOATTYPE *p1 = pf + i * nCols;
+					const data_type *p1 = pf + i * nCols;
 					for (size_t j = 0; j < i; ++j) {
-						const FLOATTYPE *p2 = pf + (j * nCols);
+						const data_type *p2 = pf + (j * nCols);
 						double s = 0;
 						for (size_t k = 0; k < nCols; ++k) {
 							double x = p1[k] - p2[k];
@@ -404,8 +224,8 @@ namespace info {
 					}	// j
 				}	// i
 					//
-				this->m_rowdist = std::make_shared<DistanceMapType>();
-				DistanceMapType *pRet = this->m_rowdist.get();
+				this->m_rowdist = std::make_shared<distancemap_type>();
+				distancemap_type *pRet = this->m_rowdist.get();
 				if (pRet != nullptr) {
 					oDist.recode(*pRet);
 				}
@@ -414,9 +234,9 @@ namespace info {
 		void getColDist(void) {
 			const size_t nRows = this->m_nrows;
 			const size_t nCols = this->m_ncols;
-			const FLOATTYPE *pf = this->m_data.get();
+			const data_type *pf = this->m_data.get();
 			if ((nRows > 0) && (nCols > 0) && (pf != nullptr)) {
-				DistanceMap<size_t, double> oDist;
+				DistanceMap<size_t, float> oDist;
 				for (size_t i = 0; i < nCols; ++i) {
 					for (size_t j = 0; j < i; ++j) {
 						double s = 0;
@@ -428,16 +248,16 @@ namespace info {
 						oDist.add(j, i, val);
 					}							// j
 				}					//i							// i
-				this->m_coldist = std::make_shared<DistanceMapType>();
-				DistanceMapType *pRet = this->m_coldist.get();
+				this->m_coldist = std::make_shared<distancemap_type>();
+				distancemap_type *pRet = this->m_coldist.get();
 				if (pRet != nullptr) {
 					oDist.recode(*pRet);
 				}
-			}							 // ok
+			}	 //
 		}							 // getColistAsync
 	};
 	// class MatData
 	///////////////////////////////////////
 }// namespace info
-////////////////////////////////////////////
+ ////////////////////////////////////////////
 #endif // !__MATDATA_H__
