@@ -170,6 +170,12 @@ template <typename INDEXTYPE, typename FLOATTYPE,
 		   this->row_indexes(p->indexes());
 		 }
 		}// colindex
+		template <typename X, typename CRIT>
+		void indexes(const std::pair<std::shared_ptr<MatElemResult<X,CRIT> > ,
+			     std::shared_ptr<MatElemResult<X,CRIT> > > &oPair){
+		  this->row_indexes(oPair.first);
+		  this->col_indexes(oPair.second);
+		}//indexes
 	}; // class IndexedMatData
 	///////////////////////////////////
 }// namespace info

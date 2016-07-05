@@ -1,14 +1,12 @@
 //test_indiv.cpp
 #include <unittest++/UnitTest++.h>
 ////////////////////////////
-#include <indiv.h>
-#include <matdata.h>
 #include <matelem.h>
-#include <treeelem.h>
 #include <indexed_matdata.h>
+///////////////////////////////
+#include "global_defs.h"
 ////////////////////////////////
 #include "infodatafixture.h"
-#include "global_defs.h"
 ////////////////////////////
 using namespace info;
 ///////////////////////////
@@ -30,7 +28,21 @@ using matelem_type = MatElem<index_type,distance_type,criteria_type>;
 using matord_type = MatOrd<index_type,distance_type,criteria_type>;
 using matordresult_type = std::pair<matelemresult_type_ptr,matelemresult_type_ptr>;
 using indexedmatdata_type = IndexedMatData<index_type, data_type, distance_type,string_type>;
-///////////////////////////////
+using matelemfunction_type = MatElemFunction<index_type,criteria_type>;
+//////////////////////////
+class TestFunction : public MatElemFunction<index_type,criteria_type>{
+public:
+TestFunction(){}
+virtual ~TestFunction(){}
+protected:
+  virtual void perform(matelemresult_type_ptr r){
+	  matelemresult_type *p = r.get();
+  if (p != nullptr){
+std::cout << *p << std::endl;
+  }// p
+  }// perform
+}; // class TestFunction
+//////////////////////////////////
 TEST_FIXTURE(InfoDataFixture,TestIndivs)
 {
    for (size_t i = 0; i < nRows; ++i){
@@ -85,11 +97,33 @@ TEST_FIXTURE(InfoDataFixture,TestMatElem)
    matelemresult_type_ptr r = matelem_type::st_arrange_hierar(pMat);
    matelemresult_type *p = r.get();
    CHECK(p != nullptr);
-   std::cout << std::endl ;
-   p->write_to(std::cout);
-   std::cout << std::endl;
+  // std::cout << std::endl ;
+  // p->write_to(std::cout);
+  // std::cout << std::endl;
 }//TestMatElem
 TEST_FIXTURE(InfoDataFixture,TestMatOrd)
+{
+  //
+   MatDataPtr oPtr = MatDataType::create(nRows,nCols,gdata,&rowNames,&colNames);
+   MatDataType *pMat = oPtr.get();
+   CHECK(pMat != nullptr);
+   CHECK(pMat->is_valid());
+   //
+	matord_type oMat(pMat);
+	CHECK(oMat.is_valid());
+	TestFunction ff;
+	//oMat.set_callback(&ff);
+
+    matordresult_type r = oMat.arrange_all();
+	matelemresult_type *p = r.first.get();
+   CHECK(p != nullptr);
+    std::cout << std::endl << *p;
+    matelemresult_type *pp = r.second.get();
+   CHECK(pp != nullptr);
+    std::cout << std::endl << *pp;
+    std::cout << std::endl;
+}//TestMatOrd
+TEST_FIXTURE(InfoDataFixture,TestMatOrdHierar)
 {
    MatDataPtr oPtr = MatDataType::create(nRows,nCols,gdata,&rowNames,&colNames);
    MatDataType *pMat = oPtr.get();
@@ -98,12 +132,12 @@ TEST_FIXTURE(InfoDataFixture,TestMatOrd)
    matordresult_type r = matord_type::st_arrange_all_hierar(pMat);
    matelemresult_type *p = r.first.get();
    CHECK(p != nullptr);
-   std::cout << std::endl << *p;
+    std::cout << std::endl << *p;
     matelemresult_type *pp = r.second.get();
    CHECK(pp != nullptr);
-   std::cout << std::endl << *pp;
-   std::cout << std::endl;
-}//TestMatOrd
+    std::cout << std::endl << *pp;
+    std::cout << std::endl;
+}//TestMatOrdHierar
 TEST_FIXTURE(InfoDataFixture,TestIndexedMatData)
 {
    MatDataPtr oPtr = MatDataType::create(nRows,nCols,gdata,&rowNames,&colNames);

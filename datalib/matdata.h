@@ -9,6 +9,8 @@
 #ifndef __MATDATA_H__
 #define __MATDATA_H__
  ///////////////////////////////////////
+#include "gendefs.h"
+ //////////////////////
 #include <cassert>
 #include <memory>
 #include <vector>
@@ -17,8 +19,6 @@
 #include <future>
 //////////////////////////////////////////////////
 namespace info {
-  //////////////////////////////
-  enum class DispositionType {dispRow, dispCol};
 	////////////////////////////////////////
 	template<typename U, typename T>
 	class DistanceMap {

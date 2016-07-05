@@ -2,11 +2,14 @@
 #ifndef __MATELEM_H__
 #define __MATELEM_H__
 /////////////////////////////
+#include "cancellable_object.h"
 #include "treeelem.h"
 #include "matelem_result.h"
 //////////////////////
 #include <queue>
 #include <iostream>
+#include <functional>
+#include <future>
 ////////////////////////
 namespace info {
   //////////////////////////////////
@@ -23,20 +26,40 @@ template <typename INDEXTYPE,typename DISTANCETYPE, typename CRITERIATYPE>
 		using pair_type = std::pair<size_t, size_t>;
 		using pairs_type_vector = std::queue<pair_type>;
 		using matelemresult_type = MatElemResult<index_type,criteria_type>;
-                using matelemresult_type_ptr = std::shared_ptr<matelemresult_type>;
+        using matelemresult_type_ptr = std::shared_ptr<matelemresult_type>;
 		using task_type = std::future<matelemresult_type_ptr>;
 		using matelem_type = MatElem<index_type,distance_type,criteria_type>;
+		using matelemfunction_type = MatElemFunction<index_type,criteria_type>;
 	private:
+	    matelemfunction_type *m_pcallback;
 		distancemap_type *m_pdist;
 		matelemresult_type m_res;
+		bool m_bnotify;
 	protected:
-	  MatElem(const matelem_type &other): m_pdist(other.m_pdist),m_res(other.m_res){}
+	  MatElem(const matelem_type &other): CancellableObject(other),m_pcallback(other.m_pcallback),
+	  m_pdist(other.m_pdist),m_res(other.m_res), m_bnotify(other.m_bnotify){}
 	  matelem_type & operator=(const matelem_type &other){
 	    if (this != &other){
+	      CancellableObject::operator=(other);
 	      this->m_pdist = other.m_pdist;
 	      this->m_res = other.m_res;
+	      this->m_bnotify = other.m_bnotify;
+	      this->m_pcallback = other.m_pcallback;
 	    }
 	  }
+	  void notify(void){
+		matelemfunction_type *pf = this->m_pcallback;
+	    if ((pf != nullptr) && this->m_bnotify){
+	       matelemresult_type_ptr r = this->get_result();
+		   if (this->has_backgrounder()){
+			 this->send([r,pf](){
+			   (*pf)(r);
+			});
+		   } else {
+	       (*pf)(r);
+		   }
+	    }
+	  }// notify
 	  bool find_best_permutations(pair_type &v, criteria_type &bestCrit)  {
 		const sizets_vector &inds = this->m_res.indexes();
 		const size_t n = inds.size();
@@ -75,7 +98,10 @@ template <typename INDEXTYPE,typename DISTANCETYPE, typename CRITERIATYPE>
 	template <typename FLOATTYPE,typename STRINGTYPE>
 	MatElem(MatData<index_type,FLOATTYPE,distance_type,STRINGTYPE> *pMat,
 		DispositionType disp = DispositionType::dispRow,
-		cancellableflag_type *pf = nullptr):CancellableObject(pf),m_pdist(nullptr){
+		cancellableflag_type *pf = nullptr,
+		Backgrounder *pBack = nullptr):CancellableObject(pf,pBack),
+		m_pcallback(nullptr),m_pdist(nullptr),
+		m_bnotify(false){
 		  assert(pMat != nullptr);
 		  assert(pMat->is_valid());
 		  if (disp == DispositionType::dispRow){
@@ -87,26 +113,36 @@ template <typename INDEXTYPE,typename DISTANCETYPE, typename CRITERIATYPE>
 		  this->m_pdist->get_indexes(oinds);
 		  criteria_type c = 0;
 		  this->m_pdist->compute_criteria(oinds, c);
-		  this->m_res.set(c,oinds);
+		  this->m_res.set(disp,c,oinds);
 	}// MatElem
-	  MatElem(distancemap_type *pMap,cancellableflag_type *pf = nullptr) :
-	  CancellableObject(pf),m_pdist(pMap){
+	  MatElem(distancemap_type *pMap,DispositionType disp= DispositionType::dispUnknown,
+			  cancellableflag_type *pf = nullptr,Backgrounder *pBack = nullptr) :
+	  CancellableObject(pf,pBack),m_pcallback(nullptr),m_pdist(pMap),
+	  m_bnotify(false){
 			assert(pMap != nullptr);
 			assert(pMap->is_valid());
 			sizets_vector oinds;
 			pMap->get_indexes(oinds);
 			criteria_type c = 0;
 			pMap->compute_criteria(oinds, c);
-			this->m_res.set(c,oinds);
+			this->m_res.set(disp,c,oinds);
 		}// MatElem
 		virtual ~MatElem() {}
 	public:
+	  void set_callback(matelemfunction_type *f){
+	    this->m_pcallback = f;
+	    this->m_bnotify = true;
+	  }
+	  void set_notify_flag(bool b = true){
+	    this->m_bnotify = b;
+	  }
 	  criteria_type criteria(void) const {
 	    return (this->m_res.criteria());
 	  }
 	   template <typename U, typename X>
      void set(const X &crit, const std::vector<U> &oInds){
-        this->m_res.set(crit,oInds);
+	    DispositionType disp = this->m_res.disposition();
+        this->m_res.set(disp,crit,oInds);
      }// set
 	  bool is_valid(void) const {
 	    return ((this->m_pdist != nullptr) && this->m_res.is_valid());
@@ -137,6 +173,7 @@ template <typename INDEXTYPE,typename DISTANCETYPE, typename CRITERIATYPE>
 			size_t jFirst = v.second;
 			this->m_res.permute(iFirst,jFirst);
 			this->m_res.criteria(bestCrit);
+			this->notify();
 			}// not done
 			if (this->is_cancellation_requested()){
 			  return (matelemresult_type_ptr());
@@ -145,31 +182,30 @@ template <typename INDEXTYPE,typename DISTANCETYPE, typename CRITERIATYPE>
 		}// arrange
 		
 	  static matelemresult_type_ptr st_arrange(const distancemap_type *pMap,
-	    cancellableflag_type *pf = nullptr
-	  ){
-	    matelem_type oMat(pMap,pf);
+	    cancellableflag_type *pf = nullptr,Backgrounder *pBack = nullptr){
+	    matelem_type oMat(pMap,pf,pBack);
 	    return oMat.arrange();
 	  }// create
 	 template <typename FLOATTYPE,typename STRINGTYPE>
 	 static matelemresult_type_ptr st_arrange_matdata(const MatData<index_type,FLOATTYPE,distance_type,STRINGTYPE> *pMat,
 		DispositionType disp = DispositionType::dispRow,
-		cancellableflag_type *pf = nullptr){
-	    matelem_type oMat(pMat,disp,pf);
+		cancellableflag_type *pf = nullptr,Backgrounder *pBack = nullptr){
+	    matelem_type oMat(pMat,disp,pf,pBack);
 	    return oMat.arrange();
 	 }// create
 	 template <typename FLOATTYPE,typename STRINGTYPE>
 	 static matelemresult_type_ptr st_arrange_hierar(MatData<index_type,FLOATTYPE,distance_type,STRINGTYPE> *pMat,
 		DispositionType disp = DispositionType::dispRow,
-		cancellableflag_type *pf = nullptr){
+		cancellableflag_type *pf = nullptr,Backgrounder *pBack = nullptr){
 	   MatTree<index_type,FLOATTYPE,distance_type,STRINGTYPE> oTree(pMat,disp,pf);
 	   if (!oTree.aggreg()){
 	     return (matelemresult_type_ptr());
 	   }
 	   sizets_vector oinds;
 	   oTree.get_ids(oinds);
-	   matelem_type oMat(pMat,disp,pf);
+	   matelem_type oMat(pMat,disp,pf,pBack);
 	   criteria_type c = oMat.m_res.criteria();
-	   oMat.m_res.set(c,oinds);
+	   oMat.m_res.set(disp,c,oinds);
 	   return oMat.arrange();
 	 }// create
 	}; // class MatElem
@@ -188,6 +224,7 @@ template <typename INDEXTYPE,typename DISTANCETYPE, typename CRITERIATYPE>
 		using matelem_type = MatElem<index_type,distance_type,criteria_type>;
 		using matord_type = MatOrd<index_type,distance_type,criteria_type>;
 		using matordresult_type = std::pair<matelemresult_type_ptr,matelemresult_type_ptr>;
+		using matelemfunction_type = typename matelem_type::matelemfunction_type;
 	private:
 	  std::shared_ptr<matelem_type> m_colmat;
 	  std::shared_ptr<matelem_type> m_rowmat;	  
@@ -195,12 +232,13 @@ template <typename INDEXTYPE,typename DISTANCETYPE, typename CRITERIATYPE>
 	  MatOrd(cancellableflag_type *pf = nullptr):CancellableObject(pf){}
 	  template <typename FLOATTYPE,typename STRINGTYPE>
 	  MatOrd(MatData<index_type,FLOATTYPE,distance_type,STRINGTYPE> *pMat,
-		cancellableflag_type *pf = nullptr):CancellableObject(pf){
+		cancellableflag_type *pf = nullptr,Backgrounder *pBack = nullptr):
+		CancellableObject(pf,pBack){
 		      assert(pMat != nullptr);
 		assert(pMat->is_valid());      
-		this->m_colmat = std::make_shared<matelem_type>(pMat,DispositionType::dispCol,pf);
+		this->m_colmat = std::make_shared<matelem_type>(pMat,DispositionType::dispCol,pf,pBack);
 		assert(this->m_colmat.get() != nullptr);
-		this->m_rowmat = std::make_shared<matelem_type>(pMat,DispositionType::dispRow,pf);
+		this->m_rowmat = std::make_shared<matelem_type>(pMat,DispositionType::dispRow,pf,pBack);
 		assert(this->m_rowmat.get() != nullptr);
 	  }
 	  MatOrd(const matord_type &other):CancellableObject(other),m_colmat(other.m_colmat),
@@ -219,6 +257,16 @@ template <typename INDEXTYPE,typename DISTANCETYPE, typename CRITERIATYPE>
 	    return ((this->m_colmat.get() != nullptr) && this->m_colmat->is_valid() &&
 	    (this->m_rowmat != nullptr) && this->m_rowmat->is_valid());
 	  }// is_valid
+	  void set_callback(matelemfunction_type *f){
+		assert(this->is_valid());
+		this->m_colmat->set_callback(f);
+		this->m_rowmat->set_callback(f);
+	  }// set_callback
+	   void set_notify_flag(bool b = true){
+	    assert(this->is_valid());
+		this->m_colmat->set_notify_flag(b);
+		this->m_rowmat->set_notify_flag(b);
+	  }
 	  matelemresult_type_ptr arrange_cols(void){
 	    assert(this->m_colmat.get() != nullptr);
 	    assert(this->m_colmat->is_valid());
@@ -230,34 +278,40 @@ template <typename INDEXTYPE,typename DISTANCETYPE, typename CRITERIATYPE>
 	    return (this->m_rowmat->arrange());
 	  }// arrange_cols
 	  matordresult_type arrange_all(void){
+		using future_t = std::future<matelemresult_type_ptr>;
 	    assert(this->is_valid());
 	    matordresult_type r(std::make_pair(matelemresult_type_ptr(),matelemresult_type_ptr()));
-	    r.second = this->arrange_cols();
-	    r.first = this->arrange_rows();
+		future_t f = std::async(std::launch::async,[this]()->matelemresult_type_ptr{
+		  return (this->arrange_cols());
+		});
+		r.first = this->arrange_rows();
+	    r.second = f.get();
 	    return (r);
 	  }// arrange_all
+	 
 	  template <typename FLOATTYPE,typename STRINGTYPE>
 	  static matordresult_type st_arrange_all(MatData<index_type,FLOATTYPE,distance_type,STRINGTYPE> *pMat,
-		cancellableflag_type *pf = nullptr){
-	    matord_type oMat(pMat,pf);
+		cancellableflag_type *pf = nullptr,Backgrounder *pBack = nullptr){
+	    matord_type oMat(pMat,pf,pBack);
 	    return oMat.arrange_all();
 	  }// st_arrange_all
 	 template <typename FLOATTYPE,typename STRINGTYPE>
 	 static  matordresult_type st_arrange_all_hierar(MatData<index_type,FLOATTYPE,distance_type,STRINGTYPE> *pMat,
-		cancellableflag_type *pf = nullptr){
+		cancellableflag_type *pf = nullptr,Backgrounder *pBack = nullptr){
+	   using future_t = std::future<matelemresult_type_ptr>;
 	   matordresult_type oRet = std::make_pair(matelemresult_type_ptr(),matelemresult_type_ptr());
-	   {
-	     MatTree<index_type,FLOATTYPE,distance_type,STRINGTYPE> oTree(pMat,DispositionType::dispCol,pf);
+	   future_t f = std::async([pMat,pf,pBack,&oRet]()->matelemresult_type_ptr{
+		 MatTree<index_type,FLOATTYPE,distance_type,STRINGTYPE> oTree(pMat,DispositionType::dispCol,pf);
 	     if (!oTree.aggreg()){
-	      return (oRet);
+	      return (matelemresult_type_ptr());
 	      }
 	    sizets_vector oinds;
 	     oTree.get_ids(oinds);
-	     matelem_type oMat(pMat,DispositionType::dispCol,pf);
+	     matelem_type oMat(pMat,DispositionType::dispCol,pf,pBack);
 	     criteria_type c = oMat.criteria();
 	     oMat.set(c,oinds);
-	     oRet.second = oMat.arrange();
-	   }// cols
+	     return (oMat.arrange());
+	  });
 	   {
 	     MatTree<index_type,FLOATTYPE,distance_type,STRINGTYPE> oTree(pMat,DispositionType::dispRow,pf);
 	     if (!oTree.aggreg()){
@@ -265,11 +319,12 @@ template <typename INDEXTYPE,typename DISTANCETYPE, typename CRITERIATYPE>
 	      }
 	    sizets_vector oinds;
 	     oTree.get_ids(oinds);
-	     matelem_type oMat(pMat,DispositionType::dispRow,pf);
+	     matelem_type oMat(pMat,DispositionType::dispRow,pf,pBack);
 	     criteria_type c = oMat.criteria();
 	     oMat.set(c,oinds);
 	     oRet.first = oMat.arrange();
 	   }// rows
+	   oRet.second = f.get();
 	   return (oRet);
 	 }// create
 	}; // class MatOrd
