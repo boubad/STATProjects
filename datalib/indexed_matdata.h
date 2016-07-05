@@ -119,16 +119,17 @@ template <typename INDEXTYPE, typename FLOATTYPE,
 			return (this->m_pdata->get_col_name(jj));
 		}	// row_name
 		template <typename X>
-		void col_indexes(std::vector<X> &oInds) const {
-		  const sizets_vector &v = this->m_colindex;
+		void col_indexes(const std::vector<X> &oInds){
+		  sizets_vector &v = this->m_colindex;
 		  const size_t n = this->cols();
-		  oInds.resize(n);
+		  assert(oInds.size() >= n);
+		  v.resize(n);
 		  for (size_t i = 0; i < n; ++i){
-		    oInds[i] = (X)v[i];
+		    v[i] = (index_type)v[i];
 		  }// i
 		}// colindex
 		template <typename X>
-		void col_indexes(const std::vector<X> &oInds){
+		void get_col_indexes(const std::vector<X> &oInds){
 		  sizets_vector &v = this->m_colindex;
 		  const size_t n = this->cols();
 		  assert(oInds.size() >= n);
@@ -141,11 +142,13 @@ template <typename INDEXTYPE, typename FLOATTYPE,
 		 void col_indexes(std::shared_ptr<MatElemResult<X,CRIT> > oPtr){
 		 MatElemResult<X,CRIT> *p = oPtr.get();
 		 if (p != nullptr){
-		   this->col_indexes(p->indexes());
+		   sizets_vector oinds;
+		   p->indexes(oinds);
+		   this->col_indexes(oinds);
 		 }
 		}// colindex
 		template <typename X>
-		void row_indexes(std::vector<X> &oInds) const {
+		void get_row_indexes(std::vector<X> &oInds) const {
 		  const sizets_vector &v = this->m_rowindex;
 		  const size_t n = this->rows();
 		  oInds.resize(n);
@@ -164,10 +167,12 @@ template <typename INDEXTYPE, typename FLOATTYPE,
 		  }// i
 		}// rowindex
 		template <typename X, typename CRIT>
-		 void row_indexes(std::shared_ptr<MatElemResult<X,CRIT> >  oPtr){
+		 void row_indexes(std::shared_ptr<MatElemResult<X,CRIT> > oPtr){
 		 MatElemResult<X,CRIT> *p = oPtr.get();
 		 if (p != nullptr){
-		   this->row_indexes(p->indexes());
+		   sizets_vector oinds;
+		   p->indexes(oinds);
+		   this->row_indexes(oinds);
 		 }
 		}// colindex
 		template <typename X, typename CRIT>

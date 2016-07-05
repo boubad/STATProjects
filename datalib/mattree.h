@@ -100,7 +100,7 @@ namespace info {
 			return (true);
 		}// aggreg_one_step
 	public:
-		MatTree(cancellableflag_type *pf = nullptr, Backgrounder *pb = nullptr) :CancellableObject(pf, pg) {}
+		MatTree(cancellableflag_type *pf = nullptr, Backgrounder *pb = nullptr) :CancellableObject(pf, pb) {}
 		MatTree(const mattree_type &other) :CancellableObject(other), m_items(other.m_items) {}
 		mattree_type & operator=(const mattree_type &other) {
 			if (this != &other) {

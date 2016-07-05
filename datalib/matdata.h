@@ -199,7 +199,7 @@ namespace info {
 			const strings_vector *pRowNames = nullptr,
 			const strings_vector *pColNames = nullptr) {
 			return std::async([nRows, nCols, pxdata, pRowNames, pColNames]()->matdata_type_ptr {
-				return MatDataType::create(nRows, nCols, pxdata, pRowNames, pColNames);
+				return matdata_type::create(nRows, nCols, pxdata, pRowNames, pColNames);
 			});
 		}		// createAsync
 				/////////////////////////////////////

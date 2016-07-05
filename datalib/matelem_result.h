@@ -35,6 +35,7 @@ namespace info {
 			m_disp(disp), m_crit((criteria_type)crit), m_nsize(oInds.size()), m_index(new index_type[oInds.size()]) {
 			index_type *p = this->m_index.get();
 			if (p != nullptr) {
+			  const size_t n = oInds.size();
 				for (size_t i = 0; i < n; ++i) {
 					p[i] = (index_type)oInds[i];
 				}// i
@@ -215,7 +216,6 @@ namespace info {
 		template <typename U, typename X>
 		void set(const  X crit, const size_t n, const U *pInds) {
 			this->m_crit = (criteria_type)crit;
-			const size_t n = oInds.size();
 			this->m_nsize = n;
 			this->m_index.reset(new index_type[n]);
 			index_type *p = this->m_index.get();

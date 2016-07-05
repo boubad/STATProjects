@@ -1,7 +1,7 @@
 //test_indiv.cpp
 #include <unittest++/UnitTest++.h>
 ////////////////////////////
-#include <matelem.h>
+#include <matord.h>
 #include <indexed_matdata.h>
 ///////////////////////////////
 #include "global_defs.h"
@@ -30,19 +30,6 @@ using matordresult_type = std::pair<matelemresult_type_ptr,matelemresult_type_pt
 using indexedmatdata_type = IndexedMatData<index_type, data_type, distance_type,string_type>;
 using matelemfunction_type = MatElemFunction<index_type,criteria_type>;
 //////////////////////////
-class TestFunction : public MatElemFunction<index_type,criteria_type>{
-public:
-TestFunction(){}
-virtual ~TestFunction(){}
-protected:
-  virtual void perform(matelemresult_type_ptr r){
-	  matelemresult_type *p = r.get();
-  if (p != nullptr){
-std::cout << *p << std::endl;
-  }// p
-  }// perform
-}; // class TestFunction
-//////////////////////////////////
 TEST_FIXTURE(InfoDataFixture,TestIndivs)
 {
    for (size_t i = 0; i < nRows; ++i){
@@ -111,8 +98,6 @@ TEST_FIXTURE(InfoDataFixture,TestMatOrd)
    //
 	matord_type oMat(pMat);
 	CHECK(oMat.is_valid());
-	TestFunction ff;
-	//oMat.set_callback(&ff);
 
     matordresult_type r = oMat.arrange_all();
 	matelemresult_type *p = r.first.get();
